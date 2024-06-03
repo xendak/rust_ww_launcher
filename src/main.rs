@@ -1,7 +1,8 @@
 use std::{fs, io};
 use std::path::Path;
 use std::io::Write;
-use std::process::Command;
+use std::process::{Command, Stdio};
+
 
 use config::{Config, ConfigError, File};
 use serde::Deserialize;
@@ -101,6 +102,8 @@ fn main() {
     println!("Rust -- WW Launcher");
     kill_process();
 
+    
+
     let app_config = match AppConfig::new() {
         Ok(config) => config,
         Err(e) => {
@@ -108,6 +111,14 @@ fn main() {
             std::process::exit(1);
         }
     };
+
+    // delete mods folder forr both options instead, easier to recopy than change 2 dirs at once when moddding files
+    let mods_folder_path = Path::new(&app_config.game_folder).join(PAK_PATH);
+    if mods_folder_path.exists() {
+        fs::remove_dir_all(&mods_folder_path).expect("Failed to delete /~mod folder");
+        println!("Deleted /~mod folder");
+    }
+
 
     loop {
         println!("Choose an option:");
@@ -120,11 +131,6 @@ fn main() {
         match input.trim().to_lowercase().as_str() {
             "1" | "o" | "original" => {
                 println!("Executing original option...");
-                let mods_folder_path = Path::new(&app_config.game_folder).join(PAK_PATH);
-                if mods_folder_path.exists() {
-                    fs::remove_dir_all(&mods_folder_path).expect("Failed to delete /~mod folder");
-                    println!("Deleted /~mod folder");
-                }
                 let game_folder_path = Path::new(&app_config.game_folder).join(BIN_PATH);
                 for file_to_delete in &["reboot.bat", "imgui.ini", "Pipsi-WW.cfg"] {
                     let file_path = game_folder_path.join(file_to_delete);
@@ -133,7 +139,7 @@ fn main() {
                         println!("Deleted {}", file_path.display());
                     }
                 }
-                execute_binary(&(app_config.game_folder.clone() + "\\" + BIN_PATH + "\\" + PROCESS_NAME));
+                execute_binary_detached(&(app_config.game_folder.clone() + "\\" + BIN_PATH + "\\" + PROCESS_NAME));
                 break;
             }
             "2" | "m" | "mod" | "modded" => {
@@ -149,9 +155,6 @@ fn main() {
             }
         }
     }
-    println!("Press Enter to exit...");
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
 }
 
 fn kill_process() {
@@ -166,6 +169,18 @@ fn kill_process() {
     } else {
         println!("Error terminating process");
     }
+}
+
+fn execute_binary_detached(binary_path: &str) {
+    let status = Command::new(binary_path)
+        .stdout(Stdio::null()) // Redirect stdout to /dev/null (or NUL on Windows)
+        .stderr(Stdio::null()) // Redirect stderr to /dev/null (or NUL on Windows)
+        .spawn()
+        .expect("Failed to execute binary");
+
+    // The spawned process runs independently in the background
+    // You won't receive status information here
+    println!("Binary started as a detached process.");
 }
 
 fn execute_binary(binary_path: &str) {

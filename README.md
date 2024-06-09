@@ -10,3 +10,5 @@ Rust launcher for waves, switches between modded and default.On first launch it 
 </ul>
 
 note, this is probably shit codded and useless? dunno, im just learning rust and tried to make something out of it.
+
+p.s: don't leave other folders inside your "mods" folder

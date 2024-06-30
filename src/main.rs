@@ -121,7 +121,7 @@ fn main() {
 
 
     loop {
-        println!("Choose an option:");
+        println!("Choose an option: NEWVER");
         println!("1. Original (type '1', 'o', or 'original')");
         println!("2. Modded (type '2', 'm', 'mod', or 'modded')");
 
@@ -143,11 +143,11 @@ fn main() {
                 break;
             }
             "2" | "m" | "mod" | "modded" => {
-                println!("Executing modded option...");
+                println!("Executing modded option..., changed");
                 if let Err(err) = copy_files(&app_config.mods_folder, &app_config.game_folder) {
                     println!("Error copying files: {}", err);
                 }
-                execute_binary(&app_config.modded_launcher);
+                execute_binary_detached(&app_config.modded_launcher);
                 break;
             }
             _ => {
@@ -172,12 +172,21 @@ fn kill_process() {
 }
 
 fn execute_binary_detached(binary_path: &str) {
+    if binary_path.contains("Client-Win64-Shipping") {
+        println!("we are running default, therefore append -fileopenlog");
+        let status = Command::new(binary_path)
+        .arg("-fileopenlog")
+        .stdout(Stdio::null()) // Redirect stdout to /dev/null (or NUL on Windows)
+        .stderr(Stdio::null()) // Redirect stderr to /dev/null (or NUL on Windows)
+        .spawn()
+        .expect("Failed to execute binary");
+    } else {
     let status = Command::new(binary_path)
         .stdout(Stdio::null()) // Redirect stdout to /dev/null (or NUL on Windows)
         .stderr(Stdio::null()) // Redirect stderr to /dev/null (or NUL on Windows)
         .spawn()
         .expect("Failed to execute binary");
-
+    }
     // The spawned process runs independently in the background
     // You won't receive status information here
     println!("Binary started as a detached process.");
